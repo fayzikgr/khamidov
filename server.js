@@ -11,18 +11,22 @@ const IS_VERCEL = process.env.VERCEL || process.env.NODE_ENV === "production";
 const DEFAULT_SETTINGS_PATH = path.join(process.cwd(), "data", "settings.json");
 const SETTINGS_PATH = IS_VERCEL ? path.join("/tmp", "settings.json") : DEFAULT_SETTINGS_PATH;
 
-// Native Vercel Handler
+let memorySettings = null;
 
 async function getSettings() {
+    if (IS_VERCEL && memorySettings) {
+        return memorySettings;
+    }
+
     try {
         const data = await fs.readFile(SETTINGS_PATH, "utf-8");
-        return JSON.parse(data);
+        const parsed = JSON.parse(data);
+        if (IS_VERCEL && !memorySettings) {
+            memorySettings = parsed;
+        }
+        return parsed;
     } catch {
-        try {
-            const defaultData = await fs.readFile(DEFAULT_SETTINGS_PATH, "utf-8");
-            return JSON.parse(defaultData);
-        } catch {
-            return {
+        const defaultSettings = {
             primaryColor: "#008d80",
             primaryColorEnd: "#00bfa6",
             gradientDirection: "to right",
@@ -41,9 +45,12 @@ async function getSettings() {
             ],
             pendingFeedbacks: []
         };
+        if (IS_VERCEL && !memorySettings) {
+            memorySettings = defaultSettings;
+        }
+        return defaultSettings;
     }
 }
-
 function normalizeText(text = "") {
     return text.toLowerCase().trim();
 }
@@ -206,10 +213,12 @@ export default async function handler(req, res) {
             if (password !== "admin123") {
                 return res.status(401).json({ error: "Unauthorized" });
             }
-            if (!IS_VERCEL) {
+            if (IS_VERCEL) {
+                memorySettings = settings;
+            } else {
                 await fs.mkdir(path.join(process.cwd(), "data"), { recursive: true });
+                await fs.writeFile(SETTINGS_PATH, JSON.stringify(settings, null, 2), "utf-8");
             }
-            await fs.writeFile(SETTINGS_PATH, JSON.stringify(settings, null, 2), "utf-8");
             return res.json({ success: true });
         } catch (error) {
             console.error("SETTINGS ERROR:", error);
@@ -254,7 +263,11 @@ export default async function handler(req, res) {
             if (!settings.pendingFeedbacks) settings.pendingFeedbacks = [];
             settings.pendingFeedbacks.push(newReview);
             
-            await fs.writeFile(SETTINGS_PATH, JSON.stringify(settings, null, 2), "utf-8");
+            if (IS_VERCEL) {
+                memorySettings = settings;
+            } else {
+                await fs.writeFile(SETTINGS_PATH, JSON.stringify(settings, null, 2), "utf-8");
+            }
 
             const botToken = settings.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN;
             const chatId = settings.telegramChatId || process.env.TELEGRAM_CHAT_ID;
