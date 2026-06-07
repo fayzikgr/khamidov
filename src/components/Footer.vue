@@ -86,8 +86,8 @@ const socials = [
 
                         <!-- email -->
                         <div>
-                            <a href="mailto:info@khamidov.uz" class="text-white">
-                                info@khamidov.uz
+                            <a href="mailto:qoshtepa-t@adliya.uz" class="text-white">
+                                qoshtepa-t@adliya.uz
                             </a>
                         </div>
 
