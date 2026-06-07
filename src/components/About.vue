@@ -33,10 +33,6 @@ onMounted(() => {
             <!-- Заголовок -->
             <h2 class="text-center text-[42px] font-semibold text-gray-900 dark:text-white mb-16">
                 {{ t('about.title') }}
-                <span class="relative text-primary">
-                    KHAMIDOV
-                    <span class="absolute left-0 -bottom-2 w-full h-[4px] bg-primary rounded-full"></span>
-                </span>
             </h2>
 
             <!-- Карточка -->
