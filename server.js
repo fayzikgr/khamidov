@@ -11,10 +11,7 @@ const IS_VERCEL = process.env.VERCEL || process.env.NODE_ENV === "production";
 const DEFAULT_SETTINGS_PATH = path.join(process.cwd(), "data", "settings.json");
 const SETTINGS_PATH = IS_VERCEL ? path.join("/tmp", "settings.json") : DEFAULT_SETTINGS_PATH;
 
-const app = express();
-
-app.use(cors());
-app.use(express.json());
+// Native Vercel Handler
 
 async function getSettings() {
     try {
@@ -128,202 +125,153 @@ function getStaticReply(message) {
     return null;
 }
 
-app.post("/api/chat", async (req, res) => {
-    try {
-        const { message } = req.body ?? {};
+const corsMiddleware = cors();
 
-        if (!message || typeof message !== "string") {
-            return res.status(400).json(companyReply("Пожалуйста, напишите ваш вопрос текстом."));
-        }
-
-        const staticReply = getStaticReply(message);
-        if (staticReply) {
-            return res.json(companyReply(staticReply));
-        }
-
-        const settings = await getSettings();
-        const apiKey = settings.openaiApiKey || process.env.OPENAI_API_KEY;
-
-        if (!apiKey) {
-            return res.status(500).json(companyReply("OpenAI API Key is not configured."));
-        }
-
-        const client = new OpenAI({ apiKey });
-
-        const completion = await client.chat.completions.create({
-            model: "gpt-4o-mini",
-            temperature: 0.3,
-            messages: [
-                {
-                    role: "system",
-                    content: `
-Вы представляете юридическую компанию KHAMIDOV.UZ.
-
-Очень важные правила:
-- Всегда отвечайте только от имени компании.
-- Используйте "мы", "наши специалисты", "наша компания".
-- Никогда не говорите: "я бот", "я ChatGPT", "я ассистент", "OpenAI", "искусственный интеллект".
-- Не рассказывайте, кем вы созданы.
-- Не выходите из роли консультанта компании.
-- Пишите вежливо, уверенно, коротко и понятно.
-- Обращайтесь к пользователю на "вы".
-- Если вопрос связан с услугами, долгами, банкротством, документами или консультацией — мягко предлагайте оставить номер.
-- Если вопрос общий, всё равно отвечайте от имени компании, без упоминания ИИ.
-
-О компании:
-- юридические консультации
-- банкротство физических лиц
-- списание долгов
-- помощь с документами
-
-Хорошие примеры:
-- "Мы поможем вам разобраться в этом вопросе."
-- "Наша компания занимается такими вопросами."
-- "Оставьте номер, и мы свяжемся с вами в течение 7 минут 📞"
-
-Плохие примеры:
-- "Я бот..."
-- "Я создан OpenAI..."
-- "Я как ИИ..."
-          `.trim(),
-                },
-                {
-                    role: "user",
-                    content: message,
-                },
-            ],
+function runMiddleware(req, res, fn) {
+    return new Promise((resolve, reject) => {
+        fn(req, res, (result) => {
+            if (result instanceof Error) {
+                return reject(result);
+            }
+            return resolve(result);
         });
-
-        const rawReply = completion.choices?.[0]?.message?.content?.trim() || "";
-        const safeReply = sanitizeReply(rawReply);
-
-        return res.json(companyReply(safeReply));
-    } catch (error) {
-        console.error("CHAT ERROR:", error);
-
-        return res.status(500).json(
-            companyReply("Сервер временно недоступен. Пожалуйста, попробуйте чуть позже.")
-        );
-    }
-});
-
-app.get("/api/settings", async (req, res) => {
-    try {
-        const settings = await getSettings();
-        res.json(settings);
-    } catch (error) {
-        res.status(500).json({ error: "Failed to read settings" });
-    }
-});
-
-app.post("/api/order", async (req, res) => {
-    try {
-        const { name, phone, time, problem } = req.body;
-        const settings = await getSettings();
-        const botToken = settings.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN;
-        const chatId = settings.telegramChatId || process.env.TELEGRAM_CHAT_ID;
-
-        if (!botToken || !chatId) {
-            return res.status(500).json({ error: "Telegram API not configured" });
-        }
-
-        const text = `
-📩 Новая заявка
-
-👤 Имя: ${name || "Не указано"}
-📞 Телефон: ${phone || "Не указано"}
-⏰ Время: ${time || "Не указано"}
-💬 Проблема: ${problem || "Не указано"}
-        `.trim();
-
-        const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: chatId, text })
-        });
-
-        if (!response.ok) {
-            throw new Error("Telegram API error");
-        }
-
-        res.json({ success: true });
-    } catch (error) {
-        console.error("ORDER ERROR:", error);
-        res.status(500).json({ error: "Failed to send order" });
-    }
-});
-
-app.post("/api/settings", async (req, res) => {
-    try {
-        const { password, settings } = req.body;
-        // Simple hardcoded password for the demo
-        if (password !== "admin123") {
-            return res.status(401).json({ error: "Unauthorized" });
-        }
-        if (!IS_VERCEL) {
-            await fs.mkdir(path.dirname(SETTINGS_PATH), { recursive: true });
-        }
-        await fs.writeFile(SETTINGS_PATH, JSON.stringify(settings, null, 2), "utf-8");
-        res.json({ success: true });
-    } catch (error) {
-        console.error("SETTINGS ERROR:", error);
-        res.status(500).json({ error: "Failed to save settings" });
-    }
-});
-
-app.post("/api/reviews", async (req, res) => {
-    try {
-        const { name, phone, text } = req.body;
-        const settings = await getSettings();
-        
-        const newReview = {
-            id: Date.now().toString(),
-            name: name || "Не указано",
-            phone: phone || "Не указано",
-            text: text || "Не указано",
-            date: new Date().toISOString()
-        };
-
-        if (!settings.pendingFeedbacks) {
-            settings.pendingFeedbacks = [];
-        }
-        
-        settings.pendingFeedbacks.push(newReview);
-        await fs.writeFile(SETTINGS_PATH, JSON.stringify(settings, null, 2), "utf-8");
-
-        // Notify Telegram
-        const botToken = settings.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN;
-        const chatId = settings.telegramChatId || process.env.TELEGRAM_CHAT_ID;
-
-        if (botToken && chatId) {
-            const telegramText = `
-⭐ Новый отзыв ожидает проверки!
-
-👤 Имя: ${newReview.name}
-📞 Телефон: ${newReview.phone}
-💬 Отзыв: ${newReview.text}
-
-Зайдите в панель администратора (khamidov.uz/admin), чтобы одобрить или отклонить.
-            `.trim();
-
-            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ chat_id: chatId, text: telegramText })
-            }).catch(console.error);
-        }
-
-        res.json({ success: true });
-    } catch (error) {
-        console.error("REVIEW ERROR:", error);
-        res.status(500).json({ error: "Failed to submit review" });
-    }
-});
-
-if (process.env.NODE_ENV !== "production") {
-    app.listen(4000, () => {
-        console.log("Server running on http://localhost:4000");
     });
 }
 
-export default app;
+export default async function handler(req, res) {
+    await runMiddleware(req, res, corsMiddleware);
+
+    const { url, method } = req;
+    const path = url.split("?")[0];
+
+    if (path === "/api/chat" && method === "POST") {
+        try {
+            const { message } = req.body ?? {};
+
+            if (!message || typeof message !== "string") {
+                return res.status(400).json(companyReply("Пожалуйста, напишите ваш вопрос текстом."));
+            }
+
+            const staticReply = getStaticReply(message);
+            if (staticReply) {
+                return res.json(companyReply(staticReply));
+            }
+
+            const settings = await getSettings();
+            const apiKey = settings.openaiApiKey || process.env.OPENAI_API_KEY;
+
+            if (!apiKey) {
+                return res.status(500).json(companyReply("OpenAI API Key is not configured."));
+            }
+
+            const client = new OpenAI({ apiKey });
+
+            const completion = await client.chat.completions.create({
+                model: "gpt-4o-mini",
+                temperature: 0.3,
+                messages: [
+                    {
+                        role: "system",
+                        content: `Вы представляете юридическую компанию KHAMIDOV.UZ...`
+                    },
+                    {
+                        role: "user",
+                        content: message,
+                    },
+                ],
+            });
+
+            const rawReply = completion.choices?.[0]?.message?.content?.trim() || "";
+            const safeReply = sanitizeReply(rawReply);
+
+            return res.json(companyReply(safeReply));
+        } catch (error) {
+            console.error("CHAT ERROR:", error);
+            return res.status(500).json(companyReply("Сервер временно недоступен. Пожалуйста, попробуйте чуть позже."));
+        }
+    }
+
+    if (path === "/api/settings" && method === "GET") {
+        try {
+            const settings = await getSettings();
+            return res.json(settings);
+        } catch (error) {
+            return res.status(500).json({ error: "Failed to read settings" });
+        }
+    }
+
+    if (path === "/api/settings" && method === "POST") {
+        try {
+            const { password, settings } = req.body || {};
+            if (password !== "admin123") {
+                return res.status(401).json({ error: "Unauthorized" });
+            }
+            if (!IS_VERCEL) {
+                await fs.mkdir(path.join(process.cwd(), "data"), { recursive: true });
+            }
+            await fs.writeFile(SETTINGS_PATH, JSON.stringify(settings, null, 2), "utf-8");
+            return res.json({ success: true });
+        } catch (error) {
+            console.error("SETTINGS ERROR:", error);
+            return res.status(500).json({ error: "Failed to save settings" });
+        }
+    }
+
+    if (path === "/api/order" && method === "POST") {
+        try {
+            const { name, phone, time, problem } = req.body || {};
+            const settings = await getSettings();
+            const botToken = settings.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN;
+            const chatId = settings.telegramChatId || process.env.TELEGRAM_CHAT_ID;
+
+            if (!botToken || !chatId) {
+                return res.status(500).json({ error: "Telegram API not configured" });
+            }
+
+            const text = `📩 Новая заявка\n\n👤 Имя: ${name || "Не указано"}\n📞 Телефон: ${phone || "Не указано"}\n⏰ Время: ${time || "Не указано"}\n💬 Проблема: ${problem || "Не указано"}`;
+
+            const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: chatId, text })
+            });
+
+            if (!response.ok) throw new Error("Telegram API error");
+
+            return res.json({ success: true });
+        } catch (error) {
+            console.error("ORDER ERROR:", error);
+            return res.status(500).json({ error: "Failed to send order" });
+        }
+    }
+
+    if (path === "/api/reviews" && method === "POST") {
+        try {
+            const { name, phone, text } = req.body || {};
+            const settings = await getSettings();
+            
+            const newReview = { id: Date.now().toString(), name: name || "Не указано", phone: phone || "Не указано", text: text || "Не указано", date: new Date().toISOString() };
+            if (!settings.pendingFeedbacks) settings.pendingFeedbacks = [];
+            settings.pendingFeedbacks.push(newReview);
+            
+            await fs.writeFile(SETTINGS_PATH, JSON.stringify(settings, null, 2), "utf-8");
+
+            const botToken = settings.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN;
+            const chatId = settings.telegramChatId || process.env.TELEGRAM_CHAT_ID;
+
+            if (botToken && chatId) {
+                const telegramText = `⭐ Новый отзыв ожидает проверки!\n\n👤 Имя: ${newReview.name}\n📞 Телефон: ${newReview.phone}\n💬 Отзыв: ${newReview.text}`;
+                await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: chatId, text: telegramText })
+                }).catch(console.error);
+            }
+
+            return res.json({ success: true });
+        } catch (error) {
+            console.error("REVIEW ERROR:", error);
+            return res.status(500).json({ error: "Failed to submit review" });
+        }
+    }
+
+    return res.status(404).json({ error: "Not found" });
+}
