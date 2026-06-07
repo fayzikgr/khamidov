@@ -10,7 +10,9 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const SETTINGS_PATH = path.join(__dirname, "data", "settings.json");
+const IS_VERCEL = process.env.VERCEL || process.env.NODE_ENV === "production";
+const DEFAULT_SETTINGS_PATH = path.join(__dirname, "data", "settings.json");
+const SETTINGS_PATH = IS_VERCEL ? path.join("/tmp", "settings.json") : DEFAULT_SETTINGS_PATH;
 
 const app = express();
 
@@ -22,7 +24,11 @@ async function getSettings() {
         const data = await fs.readFile(SETTINGS_PATH, "utf-8");
         return JSON.parse(data);
     } catch {
-        return {
+        try {
+            const defaultData = await fs.readFile(DEFAULT_SETTINGS_PATH, "utf-8");
+            return JSON.parse(defaultData);
+        } catch {
+            return {
             primaryColor: "#008d80",
             primaryColorEnd: "#00bfa6",
             gradientDirection: "to right",
