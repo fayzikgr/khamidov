@@ -4,7 +4,6 @@ import OpenAI from "openai";
 import dotenv from "dotenv";
 import fs from "fs/promises";
 import path from "path";
-import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -14,7 +13,11 @@ import pkg from "pg";
 const { Pool } = pkg;
 
 const POSTGRES_URL = "postgres://postgres.sfhtoeudfaidqvmwovix:MeecX2nnww3OegmG@aws-1-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require&supa=base-pooler.x";
-const pool = new Pool({ connectionString: POSTGRES_URL });
+const cleanUrl = POSTGRES_URL.split("?")[0];
+const pool = new Pool({
+    connectionString: cleanUrl,
+    ssl: { rejectUnauthorized: false }
+});
 
 async function initDB() {
     await pool.query(`
