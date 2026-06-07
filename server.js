@@ -4,38 +4,46 @@ import OpenAI from "openai";
 import dotenv from "dotenv";
 import fs from "fs/promises";
 import path from "path";
+import dotenv from "dotenv";
 
 dotenv.config();
 
 const IS_VERCEL = process.env.VERCEL || process.env.NODE_ENV === "production";
-const p1 = "ghp_iAk8";
-const p2 = "n9eCugt1X";
-const p3 = "AMH2RvgZU";
-const p4 = "Nw6Il6Kq43MtPQ";
-const GITHUB_TOKEN = p1 + p2 + p3 + p4;
-const GIST_ID = "92a7dffc5be5b51008d98e018944dfc3";
+
+import pkg from "pg";
+const { Pool } = pkg;
+
+const POSTGRES_URL = "postgres://postgres.sfhtoeudfaidqvmwovix:MeecX2nnww3OegmG@aws-1-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require&supa=base-pooler.x";
+const pool = new Pool({ connectionString: POSTGRES_URL });
+
+async function initDB() {
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS site_settings (
+            id INT PRIMARY KEY,
+            data JSONB NOT NULL
+        )
+    `);
+}
+// Run initialization non-blockingly
+initDB().catch(console.error);
 
 async function getSettings() {
     try {
-        if (IS_VERCEL) {
-            const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-                headers: { "Authorization": `token ${GITHUB_TOKEN}` }
-            });
-            if (response.ok) {
-                const gistData = await response.json();
-                const content = gistData.files["settings.json"].content;
-                if (content && content !== "{}") {
-                    return JSON.parse(content);
-                }
-            }
-        } else {
-            const data = await fs.readFile(path.join(process.cwd(), "settings.json"), "utf-8");
-            return JSON.parse(data);
+        const result = await pool.query('SELECT data FROM site_settings WHERE id = 1');
+        if (result.rows.length > 0 && result.rows[0].data) {
+            return result.rows[0].data;
         }
     } catch (e) {
-        console.error("Gist read error:", e);
+        console.error("Database read error:", e);
     }
     
+    // Fallback locally
+    try {
+        if (!IS_VERCEL) {
+            const data = await fs.readFile(path.join(process.cwd(), "data", "settings.json"), "utf-8");
+            return JSON.parse(data);
+        }
+    } catch {}    
     return {
         primaryColor: "#008d80",
         primaryColorEnd: "#00bfa6",
@@ -219,18 +227,15 @@ export default async function handler(req, res) {
                 return res.status(401).json({ error: "Unauthorized" });
             }
             if (IS_VERCEL) {
-                await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-                    method: "PATCH",
-                    headers: {
-                        "Authorization": `token ${GITHUB_TOKEN}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        files: { "settings.json": { content: JSON.stringify(settings, null, 2) } }
-                    })
-                });
+                await pool.query(`
+                    INSERT INTO site_settings (id, data) 
+                    VALUES (1, $1) 
+                    ON CONFLICT (id) 
+                    DO UPDATE SET data = EXCLUDED.data
+                `, [settings]);
             } else {
-                await fs.writeFile(path.join(process.cwd(), "settings.json"), JSON.stringify(settings, null, 2), "utf-8");
+                await fs.mkdir(path.join(process.cwd(), "data"), { recursive: true }).catch(() => {});
+                await fs.writeFile(path.join(process.cwd(), "data", "settings.json"), JSON.stringify(settings, null, 2), "utf-8");
             }
             return res.json({ success: true });
         } catch (error) {
@@ -277,18 +282,15 @@ export default async function handler(req, res) {
             settings.pendingFeedbacks.push(newReview);
             
             if (IS_VERCEL) {
-                await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-                    method: "PATCH",
-                    headers: {
-                        "Authorization": `token ${GITHUB_TOKEN}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        files: { "settings.json": { content: JSON.stringify(settings, null, 2) } }
-                    })
-                });
+                await pool.query(`
+                    INSERT INTO site_settings (id, data) 
+                    VALUES (1, $1) 
+                    ON CONFLICT (id) 
+                    DO UPDATE SET data = EXCLUDED.data
+                `, [settings]);
             } else {
-                await fs.writeFile(path.join(process.cwd(), "settings.json"), JSON.stringify(settings, null, 2), "utf-8");
+                await fs.mkdir(path.join(process.cwd(), "data"), { recursive: true }).catch(() => {});
+                await fs.writeFile(path.join(process.cwd(), "data", "settings.json"), JSON.stringify(settings, null, 2), "utf-8");
             }
 
             const botToken = settings.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN;
