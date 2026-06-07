@@ -263,7 +263,9 @@ app.post("/api/settings", async (req, res) => {
         if (password !== "admin123") {
             return res.status(401).json({ error: "Unauthorized" });
         }
-        await fs.mkdir(path.dirname(SETTINGS_PATH), { recursive: true });
+        if (!IS_VERCEL) {
+            await fs.mkdir(path.dirname(SETTINGS_PATH), { recursive: true });
+        }
         await fs.writeFile(SETTINGS_PATH, JSON.stringify(settings, null, 2), "utf-8");
         res.json({ success: true });
     } catch (error) {
