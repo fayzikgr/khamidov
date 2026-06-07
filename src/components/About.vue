@@ -1,24 +1,46 @@
 <script setup>
+import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import gsap from 'gsap'
+import ScrollTrigger from 'gsap/ScrollTrigger'
+
+gsap.registerPlugin(ScrollTrigger)
 
 const { t } = useI18n()
+const aboutRef = ref(null)
+
+onMounted(() => {
+    gsap.fromTo(aboutRef.value.children, 
+        { y: 80, opacity: 0, scale: 0.85, rotationY: 10, transformPerspective: 1000 },
+        { 
+            y: 0, opacity: 1, scale: 1, rotationY: 0, 
+            duration: 0.8, 
+            stagger: 0.15, 
+            ease: 'back.out(1.5)',
+            scrollTrigger: {
+                trigger: aboutRef.value,
+                start: "top 80%"
+            }
+        }
+    )
+})
 </script>
 
 <template>
-    <section class="bg-[#f3f4f6] py-20">
-        <div class="max-w-[1200px] mx-auto px-6">
+    <section class="bg-[#f3f4f6] dark:bg-gray-800 py-20 transition-colors">
+        <div ref="aboutRef" class="max-w-[1200px] mx-auto px-6">
 
             <!-- Заголовок -->
-            <h2 class="text-center text-[42px] font-semibold text-gray-900 mb-16">
+            <h2 class="text-center text-[42px] font-semibold text-gray-900 dark:text-white mb-16">
                 {{ t('about.title') }}
-                <span class="relative text-[#008d80]">
+                <span class="relative text-primary">
                     KHAMIDOV
-                    <span class="absolute left-0 -bottom-2 w-full h-[4px] bg-[#008d80] rounded-full"></span>
+                    <span class="absolute left-0 -bottom-2 w-full h-[4px] bg-primary rounded-full"></span>
                 </span>
             </h2>
 
             <!-- Карточка -->
-            <div class="bg-white rounded-2xl p-8 md:p-12 shadow-md hover:shadow-xl transition duration-300">
+            <div class="bg-white dark:bg-gray-900 rounded-2xl p-8 md:p-12 shadow-md hover:shadow-xl transition duration-300">
 
                 <div class="grid md:grid-cols-[160px_1fr] gap-6 items-start">
 
@@ -27,11 +49,11 @@ const { t } = useI18n()
 
                     <!-- Заголовок -->
                     <div>
-                        <h3 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                        <h3 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
                             {{ t('about.name') }}
                         </h3>
 
-                        <p class="text-[#008d80] font-semibold">
+                        <p class="text-primary font-semibold">
                             {{ t('about.exp') }}
                         </p>
                     </div>
@@ -39,7 +61,7 @@ const { t } = useI18n()
                     <!-- Текст -->
                     <div class="md:col-span-2 mt-4">
                         <div class="md:col-span-2 mt-4">
-                            <p class="text-gray-600 leading-relaxed text-[16px] md:text-[17px]"
+                            <p class="text-gray-600 dark:text-gray-300 leading-relaxed text-[16px] md:text-[17px]"
                                 v-html="t('about.text')">
                             </p>
                         </div>
@@ -47,7 +69,7 @@ const { t } = useI18n()
 
                     <!-- Карта -->
                     <div class="md:col-span-2 mt-10">
-                        <h4 class="text-xl font-semibold text-gray-900 mb-4">
+                        <h4 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                             {{ t('about.location') }}
                         </h4>
 
@@ -57,7 +79,7 @@ const { t } = useI18n()
                             </iframe>
                         </div>
 
-                        <p class="mt-4 text-gray-600 text-sm">
+                        <p class="mt-4 text-gray-600 dark:text-gray-400 text-sm">
                             {{ t('about.address') }}
                         </p>
                     </div>

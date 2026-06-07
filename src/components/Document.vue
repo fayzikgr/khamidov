@@ -67,15 +67,15 @@ onBeforeUnmount(() => {
                    lg:absolute lg:left-[-190px] lg:top-30"
                         style="background-image: url('../images/documents_back_2.svg')">
 
-                        <p class="mt-3 mb-10 text-xl md:text-3xl font-light text-center text-[#008d80] max-w-xl">
+                        <p class="mt-3 mb-10 text-xl md:text-3xl font-light text-center text-primary max-w-xl">
                             {{ t('docs.cta') }}
                         </p>
 
                         <a href="/order" target="_blank">
-                            <button
-                                class="h-14 w-[350px] max-w-[360px] rounded-2xl bg-[#008d80] hover:bg-[#0aa093] transition text-white font-semibold">
+                            <SpotlightButton
+                                class="h-14 w-[350px] max-w-[360px] rounded-2xl   transition text-white font-semibold">
                                 {{ t('docs.button') }}
-                            </button>
+                            </SpotlightButton>
                         </a>
 
                     </div>

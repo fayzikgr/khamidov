@@ -1,5 +1,40 @@
 /* src/style.css */
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary: #008d80;
+  --color-primary-end: var(--color-primary-end, #00bfa6);
+}
+
+:root {
+  --radius-btn: 14px;
+  --glow-opacity: 0.5;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, var(--color-primary, #008d80), var(--color-primary-end, #00bfa6));
+  border-radius: var(--radius-btn);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, var(--glow-opacity));
+}
+
+/* For the chat widget button */
+.btn-primary-glow {
+  background: linear-gradient(to right, var(--color-primary, #008d80), var(--color-primary-end, #00bfa6));
+  box-shadow: 0 0 15px rgba(0, 0, 0, var(--glow-opacity));
+  transition: all 0.3s ease;
+}
+.btn-primary-glow:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 25px rgba(0, 0, 0, calc(var(--glow-opacity) + 0.3));
+}
 
 /* Твои кастомные стили */
 .flame {

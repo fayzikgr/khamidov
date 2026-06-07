@@ -19,31 +19,25 @@ const agree = ref(false)
 const success = ref(false)
 const loading = ref(false)
 
-const TELEGRAM_TOKEN = '8784415024:AAH9G1l6k7Y0G7m3DSNop1vF4c8HUh6ujY4'
-const CHAT_ID = '7814112802'
-
 const closeModal = () => {
     emit('close')
 }
 
-const sendToTelegram = async () => {
-    const text = `
-📩 ${t('modal.new')}
-
-👤 ${t('modal.name')}: ${name.value}
-📞 ${t('modal.phone')}: ${phone.value}
-⏰ ${t('modal.time')}: ${time.value}
-💬 ${t('modal.problem')}: ${problem.value}
-    `
-
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+const sendToApi = async () => {
+    const res = await fetch("/api/order", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            chat_id: CHAT_ID,
-            text
+            name: name.value,
+            phone: phone.value,
+            time: time.value,
+            problem: problem.value
         })
     })
+    
+    if (!res.ok) {
+        throw new Error('API Error')
+    }
 }
 
 const submitForm = async () => {
@@ -60,7 +54,7 @@ const submitForm = async () => {
     try {
         loading.value = true
 
-        await sendToTelegram()
+        await sendToApi()
 
         success.value = true
 
@@ -123,19 +117,19 @@ const submitForm = async () => {
 
                     <!-- TEXTAREA -->
                     <textarea v-model="problem" :placeholder="t('modal.problemPlaceholder')"
-                        class="w-full h-28 border border-gray-300 rounded-2xl p-4 outline-none focus:border-[#008d80] focus:ring-2 focus:ring-[#008d80]/20 transition resize-none"></textarea>
+                        class="w-full h-28 border border-gray-300 rounded-2xl p-4 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition resize-none"></textarea>
 
                     <!-- NAME -->
                     <input v-model="name" type="text" :placeholder="t('modal.namePlaceholder')"
-                        class="w-full border border-gray-300 rounded-2xl p-4 outline-none focus:border-[#008d80] focus:ring-2 focus:ring-[#008d80]/20 transition" />
+                        class="w-full border border-gray-300 rounded-2xl p-4 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition" />
 
                     <!-- PHONE -->
                     <input v-model="phone" type="text" :placeholder="t('modal.phonePlaceholder')"
-                        class="w-full border border-gray-300 rounded-2xl p-4 outline-none focus:border-[#008d80] focus:ring-2 focus:ring-[#008d80]/20 transition" />
+                        class="w-full border border-gray-300 rounded-2xl p-4 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition" />
 
                     <!-- TIME -->
                     <select v-model="time"
-                        class="w-full border border-gray-300 rounded-2xl p-4 outline-none focus:border-[#008d80]">
+                        class="w-full border border-gray-300 rounded-2xl p-4 outline-none focus:border-primary">
                         <option disabled value="">
                             {{ t('modal.selectTime') }}
                         </option>
@@ -158,13 +152,13 @@ const submitForm = async () => {
             <div class="mt-6">
 
                 <!-- BUTTON -->
-                <button @click="submitForm"
-                    class="w-full h-14 bg-[#008d80] text-white rounded-2xl font-bold flex items-center justify-center"
+                <SpotlightButton @click="submitForm"
+                    class="w-full h-14  text-white rounded-2xl font-bold flex items-center justify-center"
                     :disabled="loading">
 
                     <span v-if="loading">Отправка...</span>
                     <span v-else>{{ t('modal.button') }}</span>
-                </button>
+                </SpotlightButton>
 
                 <p class="text-xs text-gray-400 mt-3 text-center">
                     {{ t('modal.footer') }}

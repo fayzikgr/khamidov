@@ -36,7 +36,7 @@ const bubbles = computed(() => [
 ])
 
 const socialBtn =
-    "h-14 w-14 rounded-xl bg-[#008d80] grid place-items-center shadow-[0_10px_25px_rgba(0,141,128,0.25)] transition hover:scale-[1.04] active:scale-[0.98]"
+    "h-14 w-14 rounded-xl bg-primary grid place-items-center shadow-[0_10px_25px_rgba(0,141,128,0.25)] transition hover:scale-[1.04] active:scale-[0.98]"
 </script>
 
 <template>
@@ -45,7 +45,7 @@ const socialBtn =
 
         <!-- Декор -->
         <div class="pointer-events-none absolute -right-16 bottom-6 hidden md:block opacity-90">
-            <svg width="520" height="360" viewBox="0 0 520 360" fill="none" class="text-[#008d80]">
+            <svg width="520" height="360" viewBox="0 0 520 360" fill="none" class="text-primary">
                 <path
                     d="M480 40c-88 30-168 64-240 116-52 38-100 86-116 134-12 36 6 62 48 60 44-2 70-42 54-74-14-28-50-28-74-10-34 26-54 76-34 116 30 62 126 74 196 34 62-36 104-104 120-166"
                     stroke="currentColor" stroke-width="3" stroke-linecap="round" />
@@ -63,13 +63,13 @@ const socialBtn =
 
                     <div
                         class="rounded-2xl bg-[#eef1f3] px-5 py-5 sm:px-7 sm:py-7 text-[16px] sm:text-[18px] text-[#2b2f33]">
-                        <span class="font-semibold text-[#008d80]">{{ t('chat.contact') }}</span>
+                        <span class="font-semibold text-primary">{{ t('chat.contact') }}</span>
                         {{ t('chat.contactText') }}
                     </div>
 
                     <div
                         class="rounded-2xl bg-[#eef1f3] px-5 py-5 sm:px-7 sm:py-7 text-[16px] sm:text-[18px] text-[#2b2f33]">
-                        <span class="font-semibold text-[#008d80]">{{ t('chat.get') }}</span>
+                        <span class="font-semibold text-primary">{{ t('chat.get') }}</span>
                         {{ t('chat.getText') }}
                     </div>
 
@@ -102,7 +102,7 @@ const socialBtn =
 
                                         <div class="bubble-in rounded-2xl px-4 py-3 text-[13px]" :class="b.color === 'dark'
                                             ? 'bg-[#2c2f33] text-white'
-                                            : 'bg-[#008d80] text-white'">
+                                            : 'bg-primary text-white'">
                                             {{ b.text }}
                                         </div>
 
@@ -126,7 +126,7 @@ const socialBtn =
 
                     <div
                         class="rounded-2xl bg-[#eef1f3] px-5 py-5 sm:px-7 sm:py-7 text-[16px] sm:text-[18px] text-[#2b2f33]">
-                        <span class="font-semibold text-[#008d80]">{{ t('chat.describe') }}</span>
+                        <span class="font-semibold text-primary">{{ t('chat.describe') }}</span>
                         {{ t('chat.describeText') }}
                     </div>
 

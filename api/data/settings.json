@@ -1,0 +1,43 @@
+{
+  "primaryColor": "#038d80",
+  "primaryColorEnd": "#038d80",
+  "gradientDirection": "to bottom",
+  "glowIntensity": "medium",
+  "borderRadius": "14px",
+  "chatbotWelcome": "Salom! Men yuridik yordamchiman. Savolingizni yozing...",
+  "contactInfo": {
+    "phone": "",
+    "address": "",
+    "telegram": "",
+    "instagram": ""
+  },
+  "texts": {
+    "uz": {
+      "hero": {}
+    },
+    "ru": {
+      "hero": {}
+    }
+  },
+  "telegramBotToken": "",
+  "telegramChatId": "",
+  "openaiApiKey": "",
+  "feedbacks": [
+    {
+      "name": "Salom Salom",
+      "text": "Руководитель департамента\nконтроля качества",
+      "avatar": ""
+    },
+    {
+      "name": "Проскурова Елена",
+      "text": "Руководитель практики частного\nправа",
+      "avatar": ""
+    },
+    {
+      "name": "Титов Александр",
+      "text": "Ведущий юрист практики\nжилищного права и социальных\nотношений",
+      "avatar": ""
+    }
+  ],
+  "pendingFeedbacks": []
+}

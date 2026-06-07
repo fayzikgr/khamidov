@@ -61,7 +61,7 @@ const sendForm = async () => {
 </script>
 
 <template>
-    <section class="relative bg-[#008d80] py-12 sm:py-[70px] overflow-hidden">
+    <section class="relative bg-primary py-12 sm:py-[70px] overflow-hidden">
         <div class="max-w-[1200px] mx-auto px-4 sm:px-6">
 
             <!-- TITLE -->

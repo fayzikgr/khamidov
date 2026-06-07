@@ -28,10 +28,10 @@ const faqs = computed(() => [
                 class="text-center text-5xl sm:text-4xl lg:text-[60px] font-semibold mb-10 sm:mb-14 lg:mb-16 text-gray-900 leading-tight">
                 {{ t('faq.title1') }}
 
-                <span class="relative inline-block text-[#008d80] px-1">
+                <span class="relative inline-block text-primary px-1">
                     {{ t('faq.highlight') }}
                     <span
-                        class="absolute left-0 -bottom-1 sm:-bottom-2 w-full h-[3px] sm:h-[4px] bg-[#008d80] rounded-full"></span>
+                        class="absolute left-0 -bottom-1 sm:-bottom-2 w-full h-[3px] sm:h-[4px] bg-primary rounded-full"></span>
                 </span>
 
                 {{ t('faq.title2') }}

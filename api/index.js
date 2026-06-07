@@ -2,17 +2,47 @@ import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
 import dotenv from "dotenv";
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const SETTINGS_PATH = path.join(__dirname, "data", "settings.json");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-const client = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+async function getSettings() {
+    try {
+        const data = await fs.readFile(SETTINGS_PATH, "utf-8");
+        return JSON.parse(data);
+    } catch {
+        return {
+            primaryColor: "#008d80",
+            primaryColorEnd: "#00bfa6",
+            gradientDirection: "to right",
+            glowIntensity: "medium",
+            borderRadius: "14px",
+            chatbotWelcome: "Salom! Men yuridik yordamchiman. Savolingizni yozing...",
+            contactInfo: { phone: "", address: "", telegram: "", instagram: "" },
+            texts: { uz: {}, ru: {} },
+            telegramBotToken: "",
+            telegramChatId: "",
+            openaiApiKey: "",
+            feedbacks: [
+                { name: "Ибрагимова Нурида", text: "Руководитель департамента\nконтроля качества", avatar: "" },
+                { name: "Проскурова Елена", text: "Руководитель практики частного\nправа", avatar: "" },
+                { name: "Титов Александр", text: "Ведущий юрист практики\nжилищного права и социальных\nотношений", avatar: "" }
+            ],
+            pendingFeedbacks: []
+        };
+    }
+}
 
 function normalizeText(text = "") {
     return text.toLowerCase().trim();
@@ -95,7 +125,7 @@ function getStaticReply(message) {
     return null;
 }
 
-app.post("/chat", async (req, res) => {
+app.post("/api/chat", async (req, res) => {
     try {
         const { message } = req.body ?? {};
 
@@ -107,6 +137,15 @@ app.post("/chat", async (req, res) => {
         if (staticReply) {
             return res.json(companyReply(staticReply));
         }
+
+        const settings = await getSettings();
+        const apiKey = settings.openaiApiKey || process.env.OPENAI_API_KEY;
+
+        if (!apiKey) {
+            return res.status(500).json(companyReply("OpenAI API Key is not configured."));
+        }
+
+        const client = new OpenAI({ apiKey });
 
         const completion = await client.chat.completions.create({
             model: "gpt-4o-mini",
@@ -165,6 +204,121 @@ app.post("/chat", async (req, res) => {
     }
 });
 
-app.listen(3000, () => {
-    console.log("Server running on http://localhost:3000");
+app.get("/api/settings", async (req, res) => {
+    try {
+        const settings = await getSettings();
+        res.json(settings);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to read settings" });
+    }
 });
+
+app.post("/api/order", async (req, res) => {
+    try {
+        const { name, phone, time, problem } = req.body;
+        const settings = await getSettings();
+        const botToken = settings.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN;
+        const chatId = settings.telegramChatId || process.env.TELEGRAM_CHAT_ID;
+
+        if (!botToken || !chatId) {
+            return res.status(500).json({ error: "Telegram API not configured" });
+        }
+
+        const text = `
+📩 Новая заявка
+
+👤 Имя: ${name || "Не указано"}
+📞 Телефон: ${phone || "Не указано"}
+⏰ Время: ${time || "Не указано"}
+💬 Проблема: ${problem || "Не указано"}
+        `.trim();
+
+        const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: chatId, text })
+        });
+
+        if (!response.ok) {
+            throw new Error("Telegram API error");
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error("ORDER ERROR:", error);
+        res.status(500).json({ error: "Failed to send order" });
+    }
+});
+
+app.post("/api/settings", async (req, res) => {
+    try {
+        const { password, settings } = req.body;
+        // Simple hardcoded password for the demo
+        if (password !== "admin123") {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+        await fs.mkdir(path.dirname(SETTINGS_PATH), { recursive: true });
+        await fs.writeFile(SETTINGS_PATH, JSON.stringify(settings, null, 2), "utf-8");
+        res.json({ success: true });
+    } catch (error) {
+        console.error("SETTINGS ERROR:", error);
+        res.status(500).json({ error: "Failed to save settings" });
+    }
+});
+
+app.post("/api/reviews", async (req, res) => {
+    try {
+        const { name, phone, text } = req.body;
+        const settings = await getSettings();
+        
+        const newReview = {
+            id: Date.now().toString(),
+            name: name || "Не указано",
+            phone: phone || "Не указано",
+            text: text || "Не указано",
+            date: new Date().toISOString()
+        };
+
+        if (!settings.pendingFeedbacks) {
+            settings.pendingFeedbacks = [];
+        }
+        
+        settings.pendingFeedbacks.push(newReview);
+        await fs.writeFile(SETTINGS_PATH, JSON.stringify(settings, null, 2), "utf-8");
+
+        // Notify Telegram
+        const botToken = settings.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN;
+        const chatId = settings.telegramChatId || process.env.TELEGRAM_CHAT_ID;
+
+        if (botToken && chatId) {
+            const telegramText = `
+⭐ Новый отзыв ожидает проверки!
+
+👤 Имя: ${newReview.name}
+📞 Телефон: ${newReview.phone}
+💬 Отзыв: ${newReview.text}
+
+Зайдите в панель администратора (khamidov.uz/admin), чтобы одобрить или отклонить.
+            `.trim();
+
+            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: chatId, text: telegramText })
+            }).catch(console.error);
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error("REVIEW ERROR:", error);
+        res.status(500).json({ error: "Failed to submit review" });
+    }
+});
+
+if (process.env.NODE_ENV !== "production") {
+    app.listen(4000, () => {
+        console.log("Server running on http://localhost:4000");
+    });
+}
+
+export default app;

@@ -83,19 +83,19 @@ const submitForm = async () => {
 
                     <!-- TEXTAREA -->
                     <textarea v-model="problem" placeholder="Опишите вашу проблему"
-                        class="w-full h-28 border border-gray-300 rounded-2xl p-4 outline-none focus:border-[#008d80] focus:ring-2 focus:ring-[#008d80]/20 transition resize-none"></textarea>
+                        class="w-full h-28 border border-gray-300 rounded-2xl p-4 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition resize-none"></textarea>
 
                     <!-- NAME -->
                     <input v-model="name" type="text" placeholder="Ваше имя"
-                        class="w-full border border-gray-300 rounded-2xl p-4 outline-none focus:border-[#008d80] focus:ring-2 focus:ring-[#008d80]/20 transition" />
+                        class="w-full border border-gray-300 rounded-2xl p-4 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition" />
 
                     <!-- PHONE -->
                     <input v-model="phone" type="text" placeholder="+998 __ ___ __ __"
-                        class="w-full border border-gray-300 rounded-2xl p-4 outline-none focus:border-[#008d80] focus:ring-2 focus:ring-[#008d80]/20 transition" />
+                        class="w-full border border-gray-300 rounded-2xl p-4 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition" />
 
                     <!-- TIME (🔥 добавили) -->
                     <select v-model="time"
-                        class="w-full border border-gray-300 rounded-2xl p-4 outline-none focus:border-[#008d80]">
+                        class="w-full border border-gray-300 rounded-2xl p-4 outline-none focus:border-primary">
                         <option disabled selected>Выберите время консультации</option>
                         <option>10:00</option>
                         <option>12:00</option>
@@ -105,7 +105,7 @@ const submitForm = async () => {
 
                     <!-- CHECKBOX -->
                     <label class="flex items-start gap-3 text-sm text-gray-500">
-                        <input type="checkbox" class="mt-1 accent-[#008d80]" />
+                        <input type="checkbox" class="mt-1 accent-primary" />
                         Даю согласие на обработку персональных данных
                     </label>
                 </div>
@@ -115,9 +115,9 @@ const submitForm = async () => {
             <div class="mt-6">
 
                 <!-- BUTTON -->
-                <button @click="submitForm" class="w-full h-14 bg-[#008d80] text-white rounded-2xl font-bold">
+                <SpotlightButton @click="submitForm" class="w-full h-14  text-white rounded-2xl font-bold">
                     Получить консультацию
-                </button>
+                </SpotlightButton>
 
                 <p class="text-center text-xs text-gray-400 mt-3">
                     Нажимая кнопку, вы соглашаетесь с условиями
