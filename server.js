@@ -4,14 +4,11 @@ import OpenAI from "openai";
 import dotenv from "dotenv";
 import fs from "fs/promises";
 import path from "path";
-import { fileURLToPath } from "url";
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const IS_VERCEL = process.env.VERCEL || process.env.NODE_ENV === "production";
-const DEFAULT_SETTINGS_PATH = path.join(__dirname, "data", "settings.json");
+const DEFAULT_SETTINGS_PATH = path.join(process.cwd(), "data", "settings.json");
 const SETTINGS_PATH = IS_VERCEL ? path.join("/tmp", "settings.json") : DEFAULT_SETTINGS_PATH;
 
 const app = express();
