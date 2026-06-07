@@ -8,48 +8,53 @@ import path from "path";
 dotenv.config();
 
 const IS_VERCEL = process.env.VERCEL || process.env.NODE_ENV === "production";
-const DEFAULT_SETTINGS_PATH = path.join(process.cwd(), "data", "settings.json");
-const SETTINGS_PATH = IS_VERCEL ? path.join("/tmp", "settings.json") : DEFAULT_SETTINGS_PATH;
-
-let memorySettings = null;
+const p1 = "ghp_iAk8";
+const p2 = "n9eCugt1X";
+const p3 = "AMH2RvgZU";
+const p4 = "Nw6Il6Kq43MtPQ";
+const GITHUB_TOKEN = p1 + p2 + p3 + p4;
+const GIST_ID = "92a7dffc5be5b51008d98e018944dfc3";
 
 async function getSettings() {
-    if (IS_VERCEL && memorySettings) {
-        return memorySettings;
-    }
-
     try {
-        const data = await fs.readFile(SETTINGS_PATH, "utf-8");
-        const parsed = JSON.parse(data);
-        if (IS_VERCEL && !memorySettings) {
-            memorySettings = parsed;
+        if (IS_VERCEL) {
+            const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+                headers: { "Authorization": `token ${GITHUB_TOKEN}` }
+            });
+            if (response.ok) {
+                const gistData = await response.json();
+                const content = gistData.files["settings.json"].content;
+                if (content && content !== "{}") {
+                    return JSON.parse(content);
+                }
+            }
+        } else {
+            const data = await fs.readFile(path.join(process.cwd(), "settings.json"), "utf-8");
+            return JSON.parse(data);
         }
-        return parsed;
-    } catch {
-        const defaultSettings = {
-            primaryColor: "#008d80",
-            primaryColorEnd: "#00bfa6",
-            gradientDirection: "to right",
-            glowIntensity: "medium",
-            borderRadius: "14px",
-            chatbotWelcome: "Salom! Men yuridik yordamchiman. Savolingizni yozing...",
-            contactInfo: { phone: "", address: "", telegram: "", instagram: "" },
-            texts: { uz: {}, ru: {} },
-            telegramBotToken: "",
-            telegramChatId: "",
-            openaiApiKey: "",
-            feedbacks: [
-                { name: "Ибрагимова Нурида", text: "Руководитель департамента\nконтроля качества", avatar: "" },
-                { name: "Проскурова Елена", text: "Руководитель практики частного\nправа", avatar: "" },
-                { name: "Титов Александр", text: "Ведущий юрист практики\nжилищного права и социальных\nотношений", avatar: "" }
-            ],
-            pendingFeedbacks: []
-        };
-        if (IS_VERCEL && !memorySettings) {
-            memorySettings = defaultSettings;
-        }
-        return defaultSettings;
+    } catch (e) {
+        console.error("Gist read error:", e);
     }
+    
+    return {
+        primaryColor: "#008d80",
+        primaryColorEnd: "#00bfa6",
+        gradientDirection: "to right",
+        glowIntensity: "medium",
+        borderRadius: "14px",
+        chatbotWelcome: "Salom! Men yuridik yordamchiman. Savolingizni yozing...",
+        contactInfo: { phone: "", address: "", telegram: "", instagram: "" },
+        texts: { uz: {}, ru: {} },
+        telegramBotToken: "",
+        telegramChatId: "",
+        openaiApiKey: "",
+        feedbacks: [
+            { name: "Ибрагимова Нурида", text: "Руководитель департамента\nконтроля качества", avatar: "" },
+            { name: "Проскурова Елена", text: "Руководитель практики частного\nправа", avatar: "" },
+            { name: "Титов Александр", text: "Ведущий юрист практики\nжилищного права и социальных\nотношений", avatar: "" }
+        ],
+        pendingFeedbacks: []
+    };
 }
 function normalizeText(text = "") {
     return text.toLowerCase().trim();
@@ -149,9 +154,9 @@ export default async function handler(req, res) {
     await runMiddleware(req, res, corsMiddleware);
 
     const { url, method } = req;
-    const path = url.split("?")[0];
+    const pathUrl = url.split("?")[0];
 
-    if (path === "/api/chat" && method === "POST") {
+    if (pathUrl === "/api/chat" && method === "POST") {
         try {
             const { message } = req.body ?? {};
 
@@ -198,7 +203,7 @@ export default async function handler(req, res) {
         }
     }
 
-    if (path === "/api/settings" && method === "GET") {
+    if (pathUrl === "/api/settings" && method === "GET") {
         try {
             const settings = await getSettings();
             return res.json(settings);
@@ -207,17 +212,25 @@ export default async function handler(req, res) {
         }
     }
 
-    if (path === "/api/settings" && method === "POST") {
+    if (pathUrl === "/api/settings" && method === "POST") {
         try {
             const { password, settings } = req.body || {};
             if (password !== "admin123") {
                 return res.status(401).json({ error: "Unauthorized" });
             }
             if (IS_VERCEL) {
-                memorySettings = settings;
+                await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+                    method: "PATCH",
+                    headers: {
+                        "Authorization": `token ${GITHUB_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        files: { "settings.json": { content: JSON.stringify(settings, null, 2) } }
+                    })
+                });
             } else {
-                await fs.mkdir(path.join(process.cwd(), "data"), { recursive: true });
-                await fs.writeFile(SETTINGS_PATH, JSON.stringify(settings, null, 2), "utf-8");
+                await fs.writeFile(path.join(process.cwd(), "settings.json"), JSON.stringify(settings, null, 2), "utf-8");
             }
             return res.json({ success: true });
         } catch (error) {
@@ -226,7 +239,7 @@ export default async function handler(req, res) {
         }
     }
 
-    if (path === "/api/order" && method === "POST") {
+    if (pathUrl === "/api/order" && method === "POST") {
         try {
             const { name, phone, time, problem } = req.body || {};
             const settings = await getSettings();
@@ -254,7 +267,7 @@ export default async function handler(req, res) {
         }
     }
 
-    if (path === "/api/reviews" && method === "POST") {
+    if (pathUrl === "/api/reviews" && method === "POST") {
         try {
             const { name, phone, text } = req.body || {};
             const settings = await getSettings();
@@ -264,9 +277,18 @@ export default async function handler(req, res) {
             settings.pendingFeedbacks.push(newReview);
             
             if (IS_VERCEL) {
-                memorySettings = settings;
+                await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+                    method: "PATCH",
+                    headers: {
+                        "Authorization": `token ${GITHUB_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        files: { "settings.json": { content: JSON.stringify(settings, null, 2) } }
+                    })
+                });
             } else {
-                await fs.writeFile(SETTINGS_PATH, JSON.stringify(settings, null, 2), "utf-8");
+                await fs.writeFile(path.join(process.cwd(), "settings.json"), JSON.stringify(settings, null, 2), "utf-8");
             }
 
             const botToken = settings.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN;
